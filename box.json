@@ -1,0 +1,4 @@
+{
+    "base-path": "/var/task/src",
+    "output": "/var/task/build/php-runtime.phar"
+}

@@ -1,0 +1,14 @@
+{
+    "require": {
+        "php": "7.4.*",
+        "guzzlehttp/guzzle": "^6.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Runtime\\": "/var/task/src/Runtime"
+        }
+    },
+    "config": {
+        "vendor-dir": "/opt/runtime/vendor"
+    }
+}
