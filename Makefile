@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.DEFAULT_GOAL := logs
+.DEFAULT_GOAL := run
 .PHONY: run extract
 
 MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
@@ -15,35 +15,34 @@ export XDEBUG_IDE_KEY ?= ${APP_NAME}_PHPSTORM
 export MEMORY_LIMIT ?= 3M
 
 run:
-
 	docker build \
  	-t ${APP_NAME} \
  	 --target lambda \
  	 ${CURDIR}
 
-	docker rm -f ${APP_NAME} || true
-
-	docker run \
+	cat ${CURDIR}/lambda-payload.json | docker run \
     --name ${APP_NAME} \
-    -it \
+    --rm \
+    -i \
     -e APP_DEBUG \
     -e XDEBUG_ENABLED \
     -e XDEBUG_REMOTE_HOST \
     -e XDEBUG_REMOTE_PORT \
     -e XDEBUG_IDE_KEY \
+    -e DOCKER_LAMBDA_USE_STDIN=1 \
     -v ${PROJECT_PATH}src:/var/task/src \
-    -v ${PROJECT_PATH}vendor:/opt/runtime/vendor \
-    ${APP_NAME}:latest
+    ${APP_NAME}:latest \
+	${FUNCTION}
 
-extract: bundle
+extract:
 	docker build \
-    	-t ${APP_NAME}-bundle \
-    	--target bundle \
+    	-t ${APP_NAME}-build \
+    	--target build \
     	${CURDIR}
 
 	docker run \
     	--rm \
+    	-it \
     	-v ${PROJECT_PATH}build:/var/task/build \
-    	${APP_NAME}-bundle \
+    	${APP_NAME}-build \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
-

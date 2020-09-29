@@ -1,5 +1,7 @@
 <?php
 
-require '/opt/runtime/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-\Runtime\Handler::handle();
+$runtime = \Runtime\Runtime::fromEnvVars();
+
+$runtime->start();

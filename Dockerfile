@@ -1,36 +1,33 @@
-FROM gbmcarlos/stacks:php-base as build
+FROM gbmcarlos/php-base as php-base
+
+# In this stage, we install the runtime's dependencies and bundle them with the source code
+FROM php-base as build
 
 WORKDIR /var/task
+
+RUN composer global require humbug/box
 
 COPY ./composer.* ./
 
 RUN composer install \
         -v --no-autoloader --no-suggest --no-dev --no-interaction --no-ansi
 
-COPY ./src ./src
-
-RUN composer dump-autoload -v --classmap-authoritative --no-dev --no-interaction --no-ansi
-
-FROM gbmcarlos/stacks:php-base as bundle
-
-WORKDIR /var/task
-
-RUN composer global require humbug/box
-
-COPY --from=build /var/task /var/task
-
 COPY ./box.json ./
 
-RUN /root/.composer/vendor/bin/box compile
+COPY ./src ./src
 
-FROM gbmcarlos/stacks:php as php-lambda
+RUN /root/.composer/vendor/bin/box compile
 
 FROM lambci/lambda:provided as lambda
 
 ## Base PHP Layer
 ## Project vendor Layer
-COPY --from=php-lambda /opt /opt/
-COPY --from=bundle /var/task/build/php-runtime.phar /opt/php-runtime.phar
+COPY --from=php-base /opt /opt
+COPY --from=build /var/task/build/bootstrap /opt/bootstrap
+
+COPY config/php.ini /var/task/php/conf.d/php.ini
+
+COPY ./src/app /var/task/app
 
 ENV APP_NAME=localhost \
     XDEBUG_ENABLED=false \
