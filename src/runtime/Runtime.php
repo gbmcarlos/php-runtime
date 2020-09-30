@@ -9,7 +9,7 @@ class Runtime {
 
     private string $baseUrl;
     private ClientInterface $client;
-    private FunctionContainer $functionContainer;
+    private FunctionFinder $functionContainer;
 
     private $endpoints = [
         'nextInvocation' => '/runtime/invocation/next',
@@ -18,7 +18,7 @@ class Runtime {
         'initError' => '/runtime/init/error'
     ];
 
-    public function __construct(string $baseUrl, ClientInterface $client, FunctionContainer $functionContainer) {
+    public function __construct(string $baseUrl, ClientInterface $client, FunctionFinder $functionContainer) {
         $this->baseUrl = $baseUrl;
         $this->client = $client;
         $this->functionContainer = $functionContainer;
@@ -29,7 +29,7 @@ class Runtime {
         return new self(
             trim(sprintf('http://%s/%s', getenv('AWS_LAMBDA_RUNTIME_API') ?? '', '2018-06-01')),
             new \GuzzleHttp\Client(),
-            new \Runtime\FunctionContainer()
+            new \Runtime\FunctionFinder(getenv('LAMBDA_TASK_ROOT'))
         );
 
     }

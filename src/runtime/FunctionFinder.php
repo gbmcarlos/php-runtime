@@ -2,7 +2,7 @@
 
 namespace Runtime;
 
-class FunctionContainer {
+class FunctionFinder {
 
     private $directory;
 
@@ -10,10 +10,10 @@ class FunctionContainer {
         $this->directory = $directory ?: getenv('LAMBDA_TASK_ROOT');
     }
 
-    public function get(string $id) : \Closure {
+    public function get(string $id): \Closure {
 
         $handlerFile = $this->directory . '/' . $id . '.php';
-        if (! is_file($handlerFile)) {
+        if (!is_file($handlerFile)) {
             throw new \Exception("Handler `$handlerFile` doesn't exist");
         }
 

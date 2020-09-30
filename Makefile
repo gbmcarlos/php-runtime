@@ -16,12 +16,12 @@ export MEMORY_LIMIT ?= 3M
 
 run:
 	docker build \
- 	-t ${APP_NAME} \
+ 	-t ${APP_NAME}-lambda \
  	 --target lambda \
  	 ${CURDIR}
 
 	cat ${CURDIR}/lambda-payload.json | docker run \
-    --name ${APP_NAME} \
+    --name ${APP_NAME}-lambda \
     --rm \
     -i \
     -e APP_DEBUG \
@@ -34,15 +34,19 @@ run:
     ${APP_NAME}:latest \
 	${FUNCTION}
 
-extract:
+build:
 	docker build \
-    	-t ${APP_NAME}-build \
-    	--target build \
-    	${CURDIR}
+		-t ${APP_NAME} \
+		--target build \
+		${CURDIR}
 
+publish: build
+	docker push ${IMAGE_REPO}
+
+extract: build
 	docker run \
     	--rm \
     	-it \
     	-v ${PROJECT_PATH}build:/var/task/build \
-    	${APP_NAME}-build \
+    	${APP_NAME} \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
