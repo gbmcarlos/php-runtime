@@ -27,7 +27,7 @@ COPY --from=build /var/task/build/bootstrap /opt/bootstrap
 
 COPY config/php.ini /var/task/php/conf.d/php.ini
 
-COPY ./src/app /var/task/app
+COPY ./demo /var/task/
 
 ENV APP_NAME=localhost \
     XDEBUG_ENABLED=false \
