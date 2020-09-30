@@ -1,10 +1,13 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := run
-.PHONY: run extract
+.PHONY: build run extract publish
 
 MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
 PROJECT_PATH := $(dir ${MAKEFILE_PATH})
 PROJECT_NAME := $(notdir $(patsubst %/,%,$(dir ${PROJECT_PATH})))
+
+export IMAGE_USER := gbmcarlos
+export IMAGE_TAG := latest
 
 export DOCKER_BUILDKIT ?= 1
 export APP_NAME ?= ${PROJECT_NAME}
@@ -16,7 +19,7 @@ export MEMORY_LIMIT ?= 3M
 
 run:
 	docker build \
- 	-t ${APP_NAME}-lambda \
+ 	-t ${IMAGE_USER}/${APP_NAME}-lambda:${IMAGE_TAG} \
  	 --target lambda \
  	 ${CURDIR}
 
@@ -30,18 +33,14 @@ run:
     -e XDEBUG_REMOTE_PORT \
     -e XDEBUG_IDE_KEY \
     -e DOCKER_LAMBDA_USE_STDIN=1 \
-    -v ${PROJECT_PATH}src:/var/task/src \
-    ${APP_NAME}:latest \
+    ${IMAGE_USER}/${APP_NAME}-lambda:${IMAGE_TAG} \
 	${FUNCTION}
 
 build:
 	docker build \
-		-t ${APP_NAME} \
+		-t ${IMAGE_USER}/${APP_NAME}:${IMAGE_TAG} \
 		--target build \
 		${CURDIR}
-
-publish: build
-	docker push ${IMAGE_REPO}
 
 extract: build
 	docker run \
@@ -50,3 +49,6 @@ extract: build
     	-v ${PROJECT_PATH}build:/var/task/build \
     	${APP_NAME} \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
+
+publish: build
+	docker push ${IMAGE_USER}/${APP_NAME}
