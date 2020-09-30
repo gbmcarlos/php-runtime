@@ -6,7 +6,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Runtime\\": "/var/task/src/runtime"
+            "Runtime\\": "src/runtime"
         }
     }
 }
