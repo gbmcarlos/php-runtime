@@ -9,7 +9,8 @@ class Runtime {
 
     private string $baseUrl;
     private ClientInterface $client;
-    private FunctionFinder $functionContainer;
+    private \Closure $handlerFunction;
+    private ?string $handlerMethod;
 
     private $endpoints = [
         'nextInvocation' => '/runtime/invocation/next',
@@ -18,41 +19,23 @@ class Runtime {
         'initError' => '/runtime/init/error'
     ];
 
-    public function __construct(string $baseUrl, ClientInterface $client, FunctionFinder $functionContainer) {
+    public function __construct(string $baseUrl, ClientInterface $client) {
         $this->baseUrl = $baseUrl;
         $this->client = $client;
-        $this->functionContainer = $functionContainer;
     }
 
     public static function fromEnvVars() : self {
 
         return new self(
             trim(sprintf('http://%s/%s', getenv('AWS_LAMBDA_RUNTIME_API') ?? '', '2018-06-01')),
-            new \GuzzleHttp\Client(),
-            new \Runtime\FunctionFinder(getenv('LAMBDA_TASK_ROOT'))
+            new \GuzzleHttp\Client()
         );
 
     }
 
     public function start() {
 
-        try {
-
-            $function = $this->functionContainer->get(getenv('_HANDLER'));
-
-        } catch (\Throwable $exception) {
-
-            /*
-             * After the initialization error is reported back to Lambda, this process will be killed
-             */
-            $this->initError(
-                (new \ReflectionClass($exception))->getName(),
-                $exception->getMessage()
-            );
-
-            exit;
-
-        }
+        $this->findHandler();
 
         /*
          * Whenever Lambda decides that this instance has processed enough, this process will be killed
@@ -63,7 +46,13 @@ class Runtime {
 
             try {
 
-                $result = $function($invocation->getPayload());
+                $function = $this->handlerFunction;
+
+                $result = $function(
+                    $invocation->getPayload(),
+                    $invocation->getContext(),
+                    $this->handlerMethod
+                );
 
             } catch (\Throwable $exception) {
 
@@ -88,6 +77,32 @@ class Runtime {
             }
 
             $this->invocationResponse($invocation->getRequestId(), $result);
+
+        }
+
+    }
+
+    protected function findHandler() {
+
+        try {
+
+            list($function, $method) = FunctionFinder::getHandler(
+                getenv('LAMBDA_TASK_ROOT'),
+                getenv('_HANDLER')
+            );
+
+            $this->handlerFunction = $function;
+            $this->handlerMethod = $method;
+
+        } catch (\Throwable $exception) {
+
+            /*
+             * After the initialization error is reported back to Lambda, this process will be killed
+             */
+            $this->initError(
+                (new \ReflectionClass($exception))->getName(),
+                $exception->getMessage()
+            );
 
         }
 

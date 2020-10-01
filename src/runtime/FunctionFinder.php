@@ -4,27 +4,41 @@ namespace Runtime;
 
 class FunctionFinder {
 
-    private $directory;
+    public static function getHandler(string $directory, string $handler): array {
 
-    public function __construct(?string $directory = null) {
-        $this->directory = $directory ?: getenv('LAMBDA_TASK_ROOT');
-    }
+        list($filePath, $method) = self::parseHandler($handler);
 
-    public function get(string $id): \Closure {
-
-        $handlerFile = $this->directory . '/' . $id . '.php';
+        $handlerFile = $directory . '/' . $filePath . '.php';
         if (!is_file($handlerFile)) {
             throw new \Exception("Handler `$handlerFile` doesn't exist");
         }
 
         /** @noinspection PhpIncludeInspection */
-        $handler = require $handlerFile;
+        $handlerFunction = require $handlerFile;
 
-        if (!is_callable($handler)) {
+        if (!is_callable($handlerFunction)) {
             throw new \Exception("Handler `$handlerFile` must return a \Closure");
         }
 
-        return $handler;
+        return [
+            $handlerFunction,
+            $method
+        ];
+
+    }
+
+    protected static function parseHandler(string $handler) : array {
+
+        $segments = explode('.', $handler);
+
+        if (count($segments) > 2) {
+            throw new \Exception("Invalid handler value \"$handler\"");
+        }
+
+        return [
+            $segments[0],
+            $segments[1] ?? null
+        ];
 
     }
 
