@@ -2,91 +2,53 @@
 
 namespace Runtime;
 
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\RequestOptions;
-
 class Runtime {
 
-    private string $baseUrl;
-    private ClientInterface $client;
-    private \Closure $handlerFunction;
-    private ?string $handlerMethod;
+    protected ?\Closure $handlerFunction = null;
+    protected ?string $handlerMethod = null;
 
-    private $endpoints = [
-        'nextInvocation' => '/runtime/invocation/next',
-        'invocationResponse' => '/runtime/invocation/%s/response',
-        'invocationError' => '/runtime/invocation/%s/error',
-        'initError' => '/runtime/init/error'
-    ];
+    protected LambdaAPI $lambdaApi;
 
-    public function __construct(string $baseUrl, ClientInterface $client) {
-        $this->baseUrl = $baseUrl;
-        $this->client = $client;
+    public function __construct(LambdaAPI $lambdaApi) {
+        $this->lambdaApi = $lambdaApi;
     }
 
     public static function fromEnvVars() : self {
 
         return new self(
-            trim(sprintf('http://%s/%s', getenv('AWS_LAMBDA_RUNTIME_API') ?? '', '2018-06-01')),
-            new \GuzzleHttp\Client()
+            new LambdaAPI(
+                trim(sprintf('http://%s/%s', getenv('AWS_LAMBDA_RUNTIME_API') ?? '', '2018-06-01')),
+                new \GuzzleHttp\Client()
+            )
         );
 
     }
 
-    public function start() {
+    public function run() {
 
-        $this->findHandler();
+        $this->initHandler();
 
-        /*
-         * Whenever Lambda decides that this instance has processed enough, this process will be killed
-         */
         for (; ;) {
 
-            $invocation = $this->nextInvocation();
+            $invocation = $this->lambdaApi->getNextInvocation();
 
-            try {
-
-                $function = $this->handlerFunction;
-
-                $result = $function(
-                    $invocation->getPayload(),
-                    $invocation->getContext(),
-                    $this->handlerMethod
-                );
-
-            } catch (\Throwable $exception) {
-
-                $payload = $invocation->getPayload();
-                $errorType = (new \ReflectionClass($exception))->getName();
-                $errorMessage = $exception->getMessage();
-                $stackTrace = $exception->getTraceAsString();
-
-                echo "Payload: " . json_encode($payload);
-                echo "ErrorType: $errorType";
-                echo "ErrorMessage: $errorMessage";
-                echo "StackTrace: $stackTrace";
-
-                $this->invocationError(
-                    $invocation->getRequestId(),
-                    $errorType,
-                    $errorMessage
-                );
-
-                continue;
-
-            }
-
-            $this->invocationResponse($invocation->getRequestId(), $result);
+            $this->processInvocation(
+                $invocation
+            );
 
         }
 
     }
 
-    protected function findHandler() {
+    /*
+     * Resolve the handler and get the Closure
+     * If there is any problem, report it and exit
+     */
+    protected function initHandler() {
 
         try {
 
-            list($function, $method) = FunctionFinder::getHandler(
+            list($function, $method) = HandlerFactory::getHandler(
                 getenv('LAMBDA_TASK_ROOT'),
                 getenv('_HANDLER')
             );
@@ -99,80 +61,62 @@ class Runtime {
             /*
              * After the initialization error is reported back to Lambda, this process will be killed
              */
-            $this->initError(
+            $this->lambdaApi->initError(
                 (new \ReflectionClass($exception))->getName(),
                 $exception->getMessage()
             );
+
+            exit;
 
         }
 
     }
 
-    protected function nextInvocation() : Invocation {
+    /*
+     * Given an invocation, use the resolved handler to process it
+     * If there is any error, report it, and go back to the loop for the next invocation
+     */
+    protected function processInvocation(Invocation $invocation) {
 
-        $response = $this->client->get(sprintf('%s%s', $this->baseUrl, $this->endpoints['nextInvocation']));
+        try {
 
-        $invocation = [
-            'requestId' => $response->getHeader('Lambda-Runtime-Aws-Request-Id')[0],
-            'invokedFunctionArn' => $response->getHeader('Lambda-Runtime-Invoked-Function-Arn')[0],
-            'deadlineInMs' => $response->getHeader('Lambda-Runtime-Deadline-Ms')[0],
-            'clientContext' => $response->getHeader('Lambda-Runtime-Client-Context')[0] ?? '',
-            'identity' => $response->getHeader('Lambda-Runtime-Cognito-Identity')[0] ?? '',
-            'traceId' => $response->getHeader('Lambda-Runtime-Trace-Id')[0] ?? '',
-            'payload' => json_decode((string)$response->getBody(), true) ?? []
-        ];
+            $function = $this->handlerFunction;
 
-        $invocation = new Invocation(
-            $invocation['requestId'],
-            $invocation['invokedFunctionArn'],
-            $invocation['deadlineInMs'],
-            $invocation['clientContext'],
-            $invocation['identity'],
-            $invocation['traceId'],
-            $invocation['payload']
-        );
+            $result = $function(
+                $invocation->getPayload(),
+                $invocation->getContext(),
+                $this->handlerMethod
+            );
 
-        return $invocation;
+        } catch (\Throwable $exception) {
+
+            $this->reportError($invocation, $exception);
+            return;
+
+        }
+
+        $this->lambdaApi->invocationResponse($invocation->getRequestId(), $result);
 
     }
 
-    protected function invocationResponse(string $awsRequestId, array $response) : void {
-        $this->client->post(
-            sprintf('%s%s', $this->baseUrl, sprintf($this->endpoints['invocationResponse'], $awsRequestId)),
-            [
-                RequestOptions::JSON => $response
-            ]
-        );
-    }
+    protected function reportError(Invocation $invocation, \Throwable $exception) {
 
-    protected function invocationError(string $awsRequestId, string $errorType, string $errorMessage) : void {
-        $this->client->post(
-            sprintf('%s%s', $this->baseUrl, sprintf($this->endpoints['invocationError'], $awsRequestId)),
-            [
-                RequestOptions::JSON => [
-                    'errorType' => $errorType,
-                    'errorMessage' => $errorMessage
-                ],
-                RequestOptions::HEADERS => [
-                    'Lambda-Runtime-Function-Error-Type' => $errorType
-                ]
-            ]
-        );
-    }
+        $payload = $invocation->getPayload();
+        $errorType = (new \ReflectionClass($exception))->getName();
+        $errorMessage = $exception->getMessage();
+        $stackTrace = $exception->getTraceAsString();
 
-    protected function initError(string $errorType, string $errorMessage) : void {
-        $this->client->post(
-            sprintf('%s%s', $this->baseUrl, $this->endpoints['initError']),
-            [
-                RequestOptions::JSON => [
-                    'errorType' => $errorType,
-                    'errorMessage' => $errorMessage
-                ],
-                RequestOptions::HEADERS => [
-                    'Lambda-Runtime-Function-Error-Type' => $errorType
-                ]
-            ]
+        echo "Payload: " . json_encode($payload) . "\n";
+        echo "ErrorType: $errorType\n";
+        echo "ErrorMessage: $errorMessage\n";
+        echo "StackTrace: $stackTrace\n";
+
+        $this->lambdaApi->invocationError(
+            $invocation->getRequestId(),
+            $errorType,
+            $errorMessage
         );
+
     }
 
 }

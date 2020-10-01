@@ -11,7 +11,6 @@ class Invocation {
     protected string $identity;
     protected string $traceId;
     protected array $payload;
-    protected array $context = [];
 
     /**
      * Invocation constructor.
@@ -32,22 +31,6 @@ class Invocation {
         $this->identity = $identity;
         $this->traceId = $traceId;
         $this->payload = $payload;
-
-        $this->buildContext();
-
-    }
-
-    protected function buildContext() {
-
-        $arn = $this->getInvokedFunctionArn();
-        $segments = explode(':', $arn);
-        $functionName = $segments[6];
-        $functionVersion = $segments[7] ?? null;
-        $this->context['function_name'] = $functionName;
-        $this->context['function_version'] = $functionVersion;
-        $this->context['invoked_function_arn'] = $arn;
-
-        $this->context['aws_request_id'] = $this->getRequestId();
 
     }
 
@@ -80,7 +63,17 @@ class Invocation {
     }
 
     public function getContext() : array {
-        return $this->context;
+
+        return [
+            'function_name' => getenv('AWS_LAMBDA_FUNCTION_NAME'),
+            'function_version' => getenv('AWS_LAMBDA_FUNCTION_VERSION'),
+            'invoked_function_arn' => $this->getInvokedFunctionArn(),
+            'memory_limit_in_mb' => (int) getenv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE'),
+            'aws_request_id' => $this->getRequestId(),
+            'log_group_name' => getenv('AWS_LAMBDA_LOG_GROUP_NAME'),
+            'log_stream_name' => getenv('AWS_LAMBDA_LOG_STREAM_NAME'),
+        ];
+
     }
 
 }
