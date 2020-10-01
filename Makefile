@@ -36,19 +36,24 @@ run:
     ${IMAGE_USER}/${APP_NAME}-lambda:${IMAGE_TAG} \
 	${FUNCTION}
 
-build:
+bundle:
 	docker build \
 		-t ${IMAGE_USER}/${APP_NAME}:${IMAGE_TAG} \
+		--target bundle \
+		${CURDIR}
+
+extract:
+	docker build \
+		-t ${APP_NAME}-extract \
 		--target build \
 		${CURDIR}
 
-extract: build
 	docker run \
     	--rm \
     	-it \
     	-v ${PROJECT_PATH}build:/var/task/build \
-    	${APP_NAME} \
+    	${APP_NAME}-extract \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
 
-publish: build
+publish: bundle
 	docker push ${IMAGE_USER}/${APP_NAME}
