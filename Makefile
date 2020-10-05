@@ -23,18 +23,18 @@ run:
  	 --target lambda \
  	 ${CURDIR}
 
-	docker run \
-    --name ${IMAGE_REPO}-lambda \
-    --rm \
-    -it \
-    -e APP_DEBUG \
-    -e XDEBUG_ENABLED \
-    -e XDEBUG_REMOTE_HOST \
-    -e XDEBUG_REMOTE_PORT \
-    -e XDEBUG_IDE_KEY \
-    -e DOCKER_LAMBDA_USE_STDIN=0 \
-    --entrypoint bash \
-    ${IMAGE_USER}/${IMAGE_REPO}-lambda
+	cat ${CURDIR}/lambda-payload.json | docker run \
+        --name ${IMAGE_REPO}-lambda \
+        --rm \
+        -i \
+        -e APP_DEBUG \
+        -e XDEBUG_ENABLED \
+        -e XDEBUG_REMOTE_HOST \
+        -e XDEBUG_REMOTE_PORT \
+        -e XDEBUG_IDE_KEY \
+        -e DOCKER_LAMBDA_USE_STDIN=1 \
+        ${IMAGE_USER}/${IMAGE_REPO}-lambda \
+    	${HANDLER}
 
 build:
 	docker build \
