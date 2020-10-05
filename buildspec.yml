@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+    pre_build:
+        commands:
+            - aws --version
+            - COMMIT_HASH=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION} | cut -c 1-7)
+            - IMAGE_TAG=${COMMIT_HASH:=latest}
+            - echo ${DOCKER_HUB_PASSWORD} | docker login --username ${DOCKER_HUB_USERNAME} --password-stdin
+    build:
+        commands:
+            - make publish IMAGE_TAG=${IMAGE_TAG}

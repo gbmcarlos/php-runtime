@@ -2,15 +2,13 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := run
 .PHONY: build run extract publish
 
-MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
-PROJECT_PATH := $(dir ${MAKEFILE_PATH})
-PROJECT_NAME := $(notdir $(patsubst %/,%,$(dir ${PROJECT_PATH})))
+PROJECT_NAME = $(notdir $(PWD))
 
 export IMAGE_USER := gbmcarlos
+export IMAGE_REPO := ${PROJECT_NAME}
 export IMAGE_TAG := latest
 
 export DOCKER_BUILDKIT ?= 1
-export APP_NAME ?= ${PROJECT_NAME}
 export XDEBUG_ENABLED ?= true
 export XDEBUG_REMOTE_HOST ?= host.docker.internal
 export XDEBUG_REMOTE_PORT ?= 10000
@@ -19,12 +17,12 @@ export MEMORY_LIMIT ?= 3M
 
 run:
 	docker build \
- 	-t ${IMAGE_USER}/${APP_NAME}-lambda:${IMAGE_TAG} \
+ 	-t ${IMAGE_USER}/${IMAGE_REPO}-lambda \
  	 --target lambda \
  	 ${CURDIR}
 
 	cat ${CURDIR}/lambda-payload.json | docker run \
-    --name ${APP_NAME}-lambda \
+    --name ${IMAGE_REPO}-lambda \
     --rm \
     -i \
     -e APP_DEBUG \
@@ -33,18 +31,12 @@ run:
     -e XDEBUG_REMOTE_PORT \
     -e XDEBUG_IDE_KEY \
     -e DOCKER_LAMBDA_USE_STDIN=1 \
-    ${IMAGE_USER}/${APP_NAME}-lambda:${IMAGE_TAG} \
+    ${IMAGE_USER}/${IMAGE_REPO}-lambda \
 	${FUNCTION}
-
-bundle:
-	docker build \
-		-t ${IMAGE_USER}/${APP_NAME}:${IMAGE_TAG} \
-		--target bundle \
-		${CURDIR}
 
 extract:
 	docker build \
-		-t ${APP_NAME}-extract \
+		-t ${IMAGE_REPO}-extract \
 		--target build \
 		${CURDIR}
 
@@ -52,8 +44,16 @@ extract:
     	--rm \
     	-it \
     	-v ${PROJECT_PATH}build:/var/task/build \
-    	${APP_NAME}-extract \
+    	${IMAGE_REPO}-extract \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
 
+bundle:
+	docker build \
+		-t ${IMAGE_USER}/${APP_NAME} \
+		--target bundle \
+		${CURDIR}
+
 publish: bundle
-	docker push ${IMAGE_USER}/${APP_NAME}
+	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
+	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
+	docker push ${IMAGE_USER}/${IMAGE_REPO}
