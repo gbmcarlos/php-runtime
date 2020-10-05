@@ -1,7 +1,7 @@
 ### What's this
 This project is an implementation of AWS Lambda Runtime, written in PHP for PHP
 
-Based on a [basic PHP environment](https://github.com/gbmcarlos/php-stack#php-base), install Guzzle, copy the Runtime implementation, and package the whole thing as a compressed executable PHAR file named `bootstrap` of around 200 kB.
+Based on a [basic PHP environment](https://github.com/gbmcarlos/php-stack#php-base), it installs Guzzle, copies the Runtime implementation, and packages the whole thing as a compressed executable PHAR file named `bootstrap` of around 200 kB.
 
 ### Function Handler
 
@@ -34,7 +34,7 @@ For example:
 
 In accordance to AWS Lambda's best practices, you should do any initialization work outside the handler function, such as framework bootstrapping, or loading an SDK.
 
-This Runtime supports this, by requiring the file only one, and reusing the same Closure for subsequent invocations.
+This Runtime supports this, by requiring the file only once, and reusing the same Closure for subsequent invocations.
 
 ### Context object
 
