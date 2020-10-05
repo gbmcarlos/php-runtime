@@ -4,6 +4,7 @@ phases:
     pre_build:
         commands:
             - aws --version
+            - PROJECT_NAME=nimbus
             - COMMIT_HASH=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION} | cut -c 1-7)
             - IMAGE_TAG=${COMMIT_HASH:=latest}
             - echo ${DOCKER_HUB_PASSWORD} | docker login --username ${DOCKER_HUB_USERNAME} --password-stdin
