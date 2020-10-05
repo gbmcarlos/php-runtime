@@ -7,7 +7,9 @@ FROM php-base as build
 WORKDIR /var/task
 
 ## First, install the tool we're gonna use to build the PHAR
-RUN composer global require humbug/box
+RUN     composer global require \
+            -v --no-suggest --no-interaction --no-ansi \
+            humbug/box
 
 ## Now install the runtime's dependencies
 COPY ./composer.* ./

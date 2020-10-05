@@ -2,7 +2,9 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := run
 .PHONY: build run extract publish
 
-PROJECT_NAME = $(notdir $(PWD))
+MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
+PROJECT_PATH := $(dir ${MAKEFILE_PATH})
+PROJECT_NAME := $(notdir $(patsubst %/,%,$(dir ${PROJECT_PATH})))
 
 export IMAGE_USER := gbmcarlos
 export IMAGE_REPO := ${PROJECT_NAME}
@@ -43,7 +45,7 @@ extract:
 	docker run \
     	--rm \
     	-it \
-    	-v ${PROJECT_PATH}build:/var/task/build \
+    	-v ${CURDIR}build:/var/task/build \
     	${IMAGE_REPO}-extract \
     	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
 
