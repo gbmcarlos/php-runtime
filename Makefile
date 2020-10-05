@@ -49,7 +49,7 @@ extract:
 
 bundle:
 	docker build \
-		-t ${IMAGE_USER}/${APP_NAME} \
+		-t ${IMAGE_USER}/${IMAGE_REPO} \
 		--target bundle \
 		${CURDIR}
 
