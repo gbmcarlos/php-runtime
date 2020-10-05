@@ -48,7 +48,7 @@ extract: build
 	-v ${CURDIR}:/var/mount \
 	--entrypoint /bin/sh \
 	${IMAGE_USER}/${IMAGE_REPO} \
-	-c "cd /opt; zip -r /var/mount/php-runtime.zip ./bin ./bootstrap ./bref"
+	-c "cd /opt; zip -r /var/mount/php-74-runtime.zip ./bin ./bootstrap ./bref"
 
 package: extract
 	aws cloudformation package \

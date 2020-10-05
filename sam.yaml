@@ -22,7 +22,7 @@ Resources:
       Description: This layer provides a PHP 7.4 runtime
       CompatibleRuntimes:
         - provided
-      ContentUri: ./php-runtime.zip
+      ContentUri: ./php-74-runtime.zip
   Php74RuntimeLayerParameter:
     Type: AWS::SSM::Parameter
     Properties:

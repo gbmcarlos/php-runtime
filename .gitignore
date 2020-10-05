@@ -2,5 +2,5 @@
 vendor
 build
 lambda-payload.json
-php-runtime.zip
+php-74-runtime.zip
 sam-output.yaml
