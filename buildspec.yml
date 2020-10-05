@@ -10,4 +10,4 @@ phases:
             - echo ${DOCKER_HUB_PASSWORD} | docker login --username ${DOCKER_HUB_USERNAME} --password-stdin
     build:
         commands:
-            - make publish IMAGE_TAG=${IMAGE_TAG}
+            - make publish PROJECT_NAME=${PROJECT_NAME} IMAGE_TAG=${IMAGE_TAG}
