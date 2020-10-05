@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := run
-.PHONY: build run extract publish
+.PHONY: run build extract package publish
 
 MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
 PROJECT_PATH := $(dir ${MAKEFILE_PATH})
@@ -23,39 +23,40 @@ run:
  	 --target lambda \
  	 ${CURDIR}
 
-	cat ${CURDIR}/lambda-payload.json | docker run \
+	docker run \
     --name ${IMAGE_REPO}-lambda \
     --rm \
-    -i \
+    -it \
     -e APP_DEBUG \
     -e XDEBUG_ENABLED \
     -e XDEBUG_REMOTE_HOST \
     -e XDEBUG_REMOTE_PORT \
     -e XDEBUG_IDE_KEY \
-    -e DOCKER_LAMBDA_USE_STDIN=1 \
-    ${IMAGE_USER}/${IMAGE_REPO}-lambda \
-	${FUNCTION}
+    -e DOCKER_LAMBDA_USE_STDIN=0 \
+    --entrypoint bash \
+    ${IMAGE_USER}/${IMAGE_REPO}-lambda
 
-extract:
-	docker build \
-		-t ${IMAGE_REPO}-extract \
-		--target build \
-		${CURDIR}
-
-	docker run \
-    	--rm \
-    	-it \
-    	-v ${CURDIR}build:/var/task/build \
-    	${IMAGE_REPO}-extract \
-    	/bin/sh -c "set -ex && /root/.composer/vendor/bin/box compile"
-
-bundle:
+build:
 	docker build \
 		-t ${IMAGE_USER}/${IMAGE_REPO} \
 		--target bundle \
 		${CURDIR}
 
-publish: bundle
+extract: build
+	docker run \
+	--rm \
+	-v ${CURDIR}:/var/mount \
+	--entrypoint /bin/sh \
+	${IMAGE_USER}/${IMAGE_REPO} \
+	-c "cd /opt; zip -r /var/mount/php-runtime.zip ./bin ./bootstrap ./bref"
+
+package: extract
+	aws cloudformation package \
+     	--template-file sam.yaml \
+     	--s3-bucket ${SAM_ARTIFACTS_BUCKET} \
+     	--output-template-file ${CURDIR}/sam-output.yaml
+
+publish: package
 	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
 	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
-	docker push ${IMAGE_USER}/${IMAGE_REPO}
+	#docker push ${IMAGE_USER}/${IMAGE_REPO}
