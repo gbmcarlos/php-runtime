@@ -5,7 +5,7 @@ Description: This SAM Application provides the base Lambda Layer to run PHP in L
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: php-74-runtime
-    SemanticVersion: '0.5.0'
+    SemanticVersion: '0.6.0'
     Author: gbmcarlos
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE.txt
