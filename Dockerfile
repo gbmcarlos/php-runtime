@@ -21,8 +21,8 @@ WORKDIR /var/task
 
 ## First, install the tool we're gonna use to build the PHAR
 RUN composer global require \
-        -v --no-suggest --no-interaction --no-ansi \
-        humbug/box
+        -v --no-interaction --no-ansi \
+        humbug/box:3.8.1
 
 ## Now install the runtime's dependencies
 COPY ./composer.* ./
@@ -36,7 +36,7 @@ COPY ./box.json ./
 COPY ./src ./src
 
 ## And build the PHAR
-RUN /root/.composer/vendor/bin/box compile
+RUN /root/.config/composer/vendor/bin/box compile
 
 # In this state, start from scratch and just copy the final artifact from the previous stage
 FROM php-base as bundle
