@@ -1,21 +1,19 @@
 #####
 #
-# The main build stage "build":
+# The build stage "compile":
 # - installs `box`, a tool to create PHARs
 # - copies composer's config files and installs the dependencies for the runtime implementation
 # - copies box's config file
 # - copies the source code
 # - compiles the PHAR
 #
-# The build stage "bundle" just copies the PHAR into a clean gbmcarlos/php-base image
-#
-# The build stage "lambda" copies the contents of gbmcarlos/php-base's /opt and the PHAR into aws' lambda image, for testing
+# The build stage "build" just copies the PHAR into a clean scratch image
 #
 #####
 FROM gbmcarlos/php-base as php-base
 
 ### BUILD: install dependencies, copy the source code and create the PHAR
-FROM php-base as build
+FROM php-base as compile
 
 WORKDIR /var/task
 
@@ -38,24 +36,19 @@ COPY ./src ./src
 ## And build the PHAR
 RUN /root/.config/composer/vendor/bin/box compile
 
-# In this state, start from scratch and just copy the final artifact from the previous stage
-FROM php-base as bundle
+## Download and install the Runtime Emulator
+RUN curl -sLo /var/task/aws-lambda-rie \
+        https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie \
+        && chmod +x /var/task/aws-lambda-rie
 
-COPY --from=build /var/task/build/bootstrap /opt/bootstrap
+# In this state, start from scratch and just copy the final artifacts
+FROM php-base as build
 
-# This stage is for testing
-## The first two COPY represent the final Lambda Layer, with binaries and bootstrap
-## The second two COPY represent the function's content, with source code and config
-FROM lambci/lambda:provided as lambda
+# The Runtime Client
+COPY --from=compile /var/task/build/bootstrap /opt/bootstrap
 
-## Base PHP Layer, it contains the binaries
-COPY --from=php-base /opt /opt
+# The Runtime Emulator
+COPY --from=compile /var/task/aws-lambda-rie /opt/aws-lambda-rie
 
-## Override with the bootstrap we've built
-COPY --from=bundle /opt/bootstrap /opt/bootstrap
-
-## Add php config, to enable and configure Xdebug
-COPY config/php.ini /var/task/php/conf.d/php.ini
-
-## Add the demo functions, representing the function's source code
-COPY ./demo /var/task/
+# The entrypoint
+COPY src/lambda-entrypoint.sh /opt/lambda-entrypoint.sh

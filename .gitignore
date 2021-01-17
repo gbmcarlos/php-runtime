@@ -1,6 +1,3 @@
 .idea
 vendor
 build
-lambda-payload.json
-php-74-runtime.zip
-sam-output.yaml

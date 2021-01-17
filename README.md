@@ -1,21 +1,48 @@
-### What's this
-This project is an AWS Serverless Application that provides support for PHP 7.4 Lambda functions.
+## What's this
 
-This Application is [published to the AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/eu-west-2/613351270255/php-74-runtime), under the name `php-74-runtime` so it's available for others to find and deploy.
+This project is a PHP implementation of the [AWS Lambda Runtime Interface Client](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html) (RIC).
 
-### PHP Runtime
+This RIC is a standalone, executable PHAR file, containing its own Composer dependencies (e.g. Guzzle), and the source code of the implementation.
 
-By deploying this Serverless Application, a Lambda Layer and an SSM Parameter will be created in your account.
+## Docker Image
 
-The Lambda Layer contains the binaries required to execute PHP, and a full implementation of AWS Lambda Runtime.
+This RIC is available as a Docker image in Docker Hub, [`gbmcarlos/php-runtime`](https://hub.docker.com/r/gbmcarlos/php-runtime).
 
-The SSM Parameter contains the ARN of the Layer.
+The image is based on `scratch` ("an explicitly empty image"), and it contains 3 files:
+- The Runtime Interface Client, as `/opt/bootstrap`.
+- The Runtime Interface Emulator, as `/opt/aws-lambda-rie`
+- The entrypoint script, as `/opt/lambda-entrypoint.hs`
 
-### Using the PHP Runtime
+More information about the Runtime Interface Emulator and the entrypoint script in the [Lambda and Docker section](#about-lambda-and-docker)
 
-To use this PHP Runtime, configure a Lambda Function to use a custom runtime, and add the Layer to it.
+You can copy these files to your Docker image with a COPY instruction like
 
-If you use an *Infrastructure as Code* tool, such as CloudFormation, the SSM Parameter can be used to get the ARN of the layer, instead of hardcoding it.
+```dockerfile
+COPY --from=gbmcarlos/php-runtime /opt /opt
+```
+
+## Using the Runtime
+
+Once you have created a Docker image that contains this Runtime, if you want to test the Lambda function, you just need to run a container like this:
+```shell
+docker run -i 
+  -e _HANDLER={your handler} 
+  -p 8080 
+  --entrypoint /opt/lambda-entrypoint.sh # This small script will decide whether to use the RIE or not
+  {your image} 
+```
+
+You can then send invocation events to your function by sending POST requests to the port 8080:
+```shell
+curl -XPOST "http://localhost:8080/2015-03-31/functions/function/invocations" -d '{}'
+```
+
+### Environment Variables
+
+In accordance to the Runtime Implementation specifications, this implementation expects the following environment variables to be present (from [AWS' documentation](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html#runtimes-custom-build)):
+- `_HANDLER`: The location to the handler, from the function's configuration. The standard format is file.method, where file is the name of the file without an extension, and method is the name of a method or function that's defined in the file. (More information below)
+- `LAMBDA_TASK_ROOT`: The directory that contains the function code.
+- `AWS_LAMBDA_RUNTIME_API`: The host and port of the runtime API.
 
 ### Function Handler
 
@@ -41,12 +68,12 @@ The format of the function's handler value consists of two parts:
 
 For example:
 - handler value `index` will search for a function file `index.php`, relative to the function's source code root folder
-- handler value `src/app/function` will search for a function file `src/app/function`, relative to the function's source code root folder
+- handler value `src/app/function` will search for a function file `src/app/function.php`, relative to the function's source code root folder
 - handler value `index.search` will search for a function file `index.php`, relative to the function's source code root folder, and pass the string `"search"` as the third parameter to the function
 
 ### Execution Cold Start
 
-In accordance to AWS Lambda's best practices, you should do any initialization work outside the handler function, such as framework bootstrapping, or loading an SDK.
+In accordance to AWS Lambda's best practices, you should do any initialization work inside the handler file, but outside the handler function, such as framework bootstrapping, or loading an SDK.
 
 This Runtime supports this, by requiring the file only once, and reusing the same Closure for subsequent invocations.
 
@@ -60,3 +87,26 @@ The context object passed as the second parameter to the handler function contai
 - `aws_request_id` – The identifier of the invocation request.
 - `log_group_name` – The log group for the function.
 - `log_stream_name` – The log stream for the function instance.
+
+## About Lambda and Docker
+
+### Without Docker support
+
+To implement a custom Lambda Runtime, Lambda previously required the developer to provide the Runtime Interface Client (RIC) as a script packaged in the function's source code or in one of the function layers.
+These script was then executed inside Lambda's own runtime environment.
+
+When developing and testing locally, the developer needed to copy the source code and layers manually into a Docker image of AWS, which essentially simulated the Lambda environment.
+
+### With Docker support
+
+With the new support for Lambda functions packaged as Docker containers, Lambda doesn't execute the RIC directly, but instead runs a container with the developer's Docker image.
+
+This means that the RIC, and the Runtime API are in separate environments. Specifically, when testing the RIC in a local environment, the Runtime API doesn't exist at all.
+
+### Runtime Interface Emulator
+
+With the RIC and the Runtime API being separate, the native execution environments (NodeJS, Python, Java, etc.), include a Runtime Interface Emulator (RIE). The RIE is a small application that simulates the Lambda API environment.
+
+When the RIE is packaged inside the Runtime Docker image, the entrypoint of the Docker container needs to be a small script that will decide whether to use the emulator or not. If the environment variable `AWS_LAMBDA_RUNTIME_API` is present, it means that the container is being executed in a real Lambda environment (and therefore there is a Runtime API). If that environment variable is not present, the RIE needs to be executed.
+
+When the RIE is executed, it will spin up a simulated Lambda API, and run the RIC (which will wait for invocation events). The RIE will then transform any requests to port 8080 to invocation events that the RIC can consume. 
