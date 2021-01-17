@@ -50,7 +50,7 @@ class Runtime {
 
             list($function, $method) = HandlerFactory::getHandler(
                 getenv('LAMBDA_TASK_ROOT'),
-                getenv('_HANDLER')
+                getenv('_HANDLER', 'index')
             );
 
             $this->handlerFunction = $function;
