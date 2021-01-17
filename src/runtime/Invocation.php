@@ -5,7 +5,7 @@ namespace Runtime;
 class Invocation {
 
     protected string $requestId;
-    protected string$invokedFunctionArn;
+    protected ?string $invokedFunctionArn;
     protected int $deadlineInMs;
     protected string $clientContext;
     protected string $identity;
@@ -22,7 +22,7 @@ class Invocation {
      * @param $traceId
      * @param $payload
      */
-    public function __construct(string $requestId, string $invokedFunctionArn, int $deadlineInMs, string $clientContext, string $identity, string $traceId, array $payload) {
+    public function __construct(string $requestId, ?string $invokedFunctionArn, int $deadlineInMs, string $clientContext, string $identity, string $traceId, array $payload) {
 
         $this->requestId = $requestId;
         $this->invokedFunctionArn = $invokedFunctionArn;
@@ -38,7 +38,7 @@ class Invocation {
         return $this->requestId;
     }
 
-    public function getInvokedFunctionArn() : string {
+    public function getInvokedFunctionArn() : ?string {
         return $this->invokedFunctionArn;
     }
 

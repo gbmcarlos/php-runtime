@@ -28,7 +28,7 @@ class LambdaAPI {
 
         $invocation = [
             'requestId' => $response->getHeader('Lambda-Runtime-Aws-Request-Id')[0],
-            'invokedFunctionArn' => $response->getHeader('Lambda-Runtime-Invoked-Function-Arn')[0],
+            'invokedFunctionArn' => $response->getHeader('Lambda-Runtime-Invoked-Function-Arn')[0] ?? null,
             'deadlineInMs' => $response->getHeader('Lambda-Runtime-Deadline-Ms')[0],
             'clientContext' => $response->getHeader('Lambda-Runtime-Client-Context')[0] ?? '',
             'identity' => $response->getHeader('Lambda-Runtime-Cognito-Identity')[0] ?? '',
