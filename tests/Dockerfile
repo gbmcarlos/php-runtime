@@ -1,6 +1,6 @@
 FROM gbmcarlos/php-base as test
 
-# Copy the Runtime Client, Runtime Emulator and the entrypoint
+# Copy the Runtime Interface Client, Runtime Interface Emulator and the entrypoint
 COPY --from=gbmcarlos/php-runtime /opt /opt
 
 ## Add php config, to enable and configure Xdebug
