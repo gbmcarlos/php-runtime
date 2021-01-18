@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/gbmcarlos/php-runtime
     SourceCodeUrl: https://github.com/gbmcarlos/php-runtime
-    Description: This SAM Application provides the base Lambda Layer to run PHP in Lambda Functions
+    Description: Unsupported. This SAM Application provides the base Lambda Layer to run PHP in Lambda Functions
     Labels: ['aws', 'lambda', 'runtime', 'php', 'bootstrap', 'custom', 'layer']
 
 Resources:
