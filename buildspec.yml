@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+    variables:
+        IMAGE_TAG=1.0.0
+
 phases:
     pre_build:
         commands:
@@ -11,6 +15,3 @@ phases:
     build:
         commands:
             - make publish PROJECT_NAME=${PROJECT_NAME} IMAGE_TAG=${IMAGE_TAG}
-artifacts:
-    files:
-        - sam-output.yaml

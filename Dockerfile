@@ -12,7 +12,7 @@
 # The build stage "lambda" copies the contents of gbmcarlos/php-base's /opt and the PHAR into aws' lambda image, for testing
 #
 #####
-FROM gbmcarlos/php-base as php-base
+FROM gbmcarlos/php-base:1.0.0 as php-base
 
 ### BUILD: install dependencies, copy the source code and create the PHAR
 FROM php-base as build
