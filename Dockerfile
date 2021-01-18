@@ -10,7 +10,7 @@
 # The build stage "build" just copies the PHAR into a clean scratch image
 #
 #####
-FROM gbmcarlos/php-base as php-base
+FROM gbmcarlos/php-base:2.0.0 as php-base
 
 ### BUILD: install dependencies, copy the source code and create the PHAR
 FROM php-base as compile
