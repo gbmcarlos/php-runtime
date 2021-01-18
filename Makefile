@@ -8,7 +8,7 @@ PROJECT_NAME := $(notdir $(patsubst %/,%,$(dir ${PROJECT_PATH})))
 
 export IMAGE_USER := gbmcarlos
 export IMAGE_REPO := ${PROJECT_NAME}
-export IMAGE_TAG := latest
+export IMAGE_TAG ?= 2.0.0
 
 export DOCKER_BUILDKIT ?= 1
 export XDEBUG_ENABLED ?= true
@@ -21,14 +21,12 @@ export _HANDLER ?= index
 
 build:
 	docker build \
-		-t ${IMAGE_USER}/${IMAGE_REPO} \
+		-t ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG} \
 		--target build \
 		${CURDIR}
 
 publish: build
-	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
-	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
-	docker push ${IMAGE_USER}/${IMAGE_REPO}
+	docker push ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
 
 test: build
 	docker build \
