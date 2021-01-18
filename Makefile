@@ -1,6 +1,6 @@
 SHELL := /bin/bash
-.DEFAULT_GOAL := test
-.PHONY: test build extract package publish
+.DEFAULT_GOAL := build
+.PHONY: build publish test
 
 MAKEFILE_PATH := $(abspath $(lastword ${MAKEFILE_LIST}))
 PROJECT_PATH := $(dir ${MAKEFILE_PATH})
@@ -18,6 +18,17 @@ export XDEBUG_IDE_KEY ?= ${APP_NAME}_PHPSTORM
 export MEMORY_LIMIT ?= 3M
 
 export _HANDLER ?= index
+
+build:
+	docker build \
+		-t ${IMAGE_USER}/${IMAGE_REPO} \
+		--target build \
+		${CURDIR}
+
+publish:
+	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
+	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
+	docker push ${IMAGE_USER}/${IMAGE_REPO}
 
 test: build
 	docker build \
@@ -38,14 +49,3 @@ test: build
 	-p 8080:8080 \
 	--entrypoint /opt/lambda-entrypoint.sh \
 	${IMAGE_USER}/${IMAGE_REPO}-test
-
-build:
-	docker build \
-		-t ${IMAGE_USER}/${IMAGE_REPO} \
-		--target build \
-		${CURDIR}
-
-publish:
-	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
-	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
-	docker push ${IMAGE_USER}/${IMAGE_REPO}
