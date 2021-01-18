@@ -25,7 +25,7 @@ build:
 		--target build \
 		${CURDIR}
 
-publish:
+publish: build
 	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:latest
 	docker tag ${IMAGE_USER}/${IMAGE_REPO} ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG}
 	docker push ${IMAGE_USER}/${IMAGE_REPO}
