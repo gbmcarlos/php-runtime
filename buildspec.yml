@@ -1,16 +1,15 @@
 version: 0.2
 
+env:
+    variables:
+        IMAGE_TAG: 2.0.0
+
 phases:
     pre_build:
         commands:
             - aws --version
             - PROJECT_NAME=php-runtime
-            - COMMIT_HASH=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION} | cut -c 1-7)
-            - IMAGE_TAG=${COMMIT_HASH:=latest}
             - echo ${DOCKER_HUB_PASSWORD} | docker login --username ${DOCKER_HUB_USERNAME} --password-stdin
     build:
         commands:
             - make publish PROJECT_NAME=${PROJECT_NAME} IMAGE_TAG=${IMAGE_TAG}
-artifacts:
-    files:
-        - sam-output.yaml
