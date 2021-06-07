@@ -26,7 +26,6 @@ build:
 		-t ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG} \
 		--target package \
 		--build-arg PHP_BASE_VERSION \
-		--platform linux/amd64 \
 		${CURDIR}
 
 publish: build
