@@ -10,10 +10,11 @@
 # The build stage "build" just copies the PHAR into a clean scratch image
 #
 #####
-FROM gbmcarlos/php-base:2.0.0 as php-base
+
+ARG PHP_BASE_VERSION
 
 ### BUILD: install dependencies, copy the source code and create the PHAR
-FROM php-base as compile
+FROM gbmcarlos/php-base:${PHP_BASE_VERSION} as compile
 
 WORKDIR /var/task
 
@@ -42,7 +43,7 @@ RUN curl -sLo /var/task/aws-lambda-rie \
         && chmod +x /var/task/aws-lambda-rie
 
 # In this state, start from scratch and just copy the final artifacts
-FROM php-base as build
+FROM scratch as package
 
 # The Runtime Client
 COPY --from=compile /var/task/build/bootstrap /opt/bootstrap
