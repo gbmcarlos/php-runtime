@@ -8,7 +8,9 @@ PROJECT_NAME := $(notdir $(patsubst %/,%,$(dir ${PROJECT_PATH})))
 
 export IMAGE_USER := gbmcarlos
 export IMAGE_REPO := ${PROJECT_NAME}
-export IMAGE_TAG ?= 2.0.0
+export IMAGE_TAG ?= 2.1.0
+
+export PHP_BASE_VERSION ?= 3.0.0
 
 export DOCKER_BUILDKIT ?= 1
 export XDEBUG_ENABLED ?= true
@@ -22,7 +24,9 @@ export _HANDLER ?= index
 build:
 	docker build \
 		-t ${IMAGE_USER}/${IMAGE_REPO}:${IMAGE_TAG} \
-		--target build \
+		--target package \
+		--build-arg PHP_BASE_VERSION \
+		--platform linux/amd64 \
 		${CURDIR}
 
 publish: build
